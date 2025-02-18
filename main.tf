@@ -15,18 +15,12 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-locals {
-  # change here, optional
-  name         = "rcp"
-  keyname      = "recep2"
-  instancetype = "t3a.medium"
-  ami          = "ami-0a0e5d9c7acc336f1"
-}
+
 
 resource "aws_instance" "master" {
-  ami                    = local.ami
-  instance_type          = local.instancetype
-  key_name               = local.keyname
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  key_name               = var.key_name
   iam_instance_profile   = aws_iam_instance_profile.ec2connectprofile.name
   user_data              = file("master.sh")
   vpc_security_group_ids = [aws_security_group.tf-k8s-master-sec-gr.id]
@@ -36,9 +30,9 @@ resource "aws_instance" "master" {
 }
 
 resource "aws_instance" "worker" {
-  ami                    = local.ami
-  instance_type          = local.instancetype
-  key_name               = local.keyname
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  key_name               = var.key_name
   iam_instance_profile   = aws_iam_instance_profile.ec2connectprofile.name
   vpc_security_group_ids = [aws_security_group.tf-k8s-master-sec-gr.id]
   user_data              = templatefile("worker.sh", { region = data.aws_region.current.name, master-id = aws_instance.master.id, master-zone = aws_instance.master.availability_zone, master-private = aws_instance.master.private_ip })
@@ -49,12 +43,12 @@ resource "aws_instance" "worker" {
 }
 
 resource "aws_iam_instance_profile" "ec2connectprofile" {
-  name = "ec2connectprofile-${local.name}"
+  name = "ec2connectprofile-${var.instance_name}"
   role = aws_iam_role.ec2connectcli.name
 }
 
 resource "aws_iam_role" "ec2connectcli" {
-  name = "ec2connectcli-${local.name}"
+  name = "ec2connectcli-${var.instance_name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -71,7 +65,7 @@ resource "aws_iam_role" "ec2connectcli" {
 }
 
 resource "aws_iam_role_policy" "ec2connectcli_policy" {
-  name = "ec2connectcli-policy-${local.name}"
+  name = "ec2connectcli-policy-${var.instance_name}"
   role = aws_iam_role.ec2connectcli.name
   policy = jsonencode({
     Version = "2012-10-17"
@@ -97,9 +91,9 @@ resource "aws_iam_role_policy" "ec2connectcli_policy" {
 
 
 resource "aws_security_group" "tf-k8s-master-sec-gr" {
-  name = "${local.name}-k8s-master-sec-gr"
+  name = "${var.instance_name}-k8s-master-sec-gr"
   tags = {
-    Name = "${local.name}-k8s-master-sec-gr"
+    Name = "${var.instance_name}-k8s-master-sec-gr"
   }
 
   ingress {
@@ -139,18 +133,3 @@ resource "aws_security_group" "tf-k8s-master-sec-gr" {
 }
 
 
-output "master_public_dns" {
-  value = aws_instance.master.public_dns
-}
-
-output "master_private_dns" {
-  value = aws_instance.master.private_dns
-}
-
-output "worker_public_dns" {
-  value = aws_instance.worker.public_dns
-}
-
-output "worker_private_dns" {
-  value = aws_instance.worker.private_dns
-}
