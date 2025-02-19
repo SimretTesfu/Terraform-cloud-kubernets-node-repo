@@ -7,7 +7,7 @@ variable "instance_name" {
 variable "key_name" {
   description = "enter your keyname"
   type        = string
-  
+  default = "bendar"
 }
 variable "instance_type" {
   description = "Instance type"
