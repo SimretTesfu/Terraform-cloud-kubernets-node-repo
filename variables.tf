@@ -12,7 +12,7 @@ variable "key_name" {
 variable "instance_type" {
   description = "Instance type"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 variable "ami" {
   description = "Instance type"
